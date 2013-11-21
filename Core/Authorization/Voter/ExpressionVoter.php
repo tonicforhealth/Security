@@ -62,6 +62,23 @@ class ExpressionVoter implements VoterInterface
      */
     public function vote(TokenInterface $token, $object, array $attributes)
     {
+        $result = VoterInterface::ACCESS_ABSTAIN;
+        foreach ($attributes as $attribute) {
+            if (!$this->supportsAttribute($attribute)) {
+                continue;
+            }
+
+            $result = VoterInterface::ACCESS_DENIED;
+            if ($this->expressionLanguage->evaluate($attribute, $this->getVariables())) {
+                return VoterInterface::ACCESS_GRANTED;
+            }
+        }
+
+        return $result;
+    }
+
+    private function getVariables(TokenInterface $token, $object)
+    {
         if (null !== $this->roleHierarchy) {
             $roles = $this->roleHierarchy->getReachableRoles($token->getRoles());
         } else {
@@ -83,18 +100,6 @@ class ExpressionVoter implements VoterInterface
             $variables['request'] = $object;
         }
 
-        $result = VoterInterface::ACCESS_ABSTAIN;
-        foreach ($attributes as $attribute) {
-            if (!$this->supportsAttribute($attribute)) {
-                continue;
-            }
-
-            $result = VoterInterface::ACCESS_DENIED;
-            if ($this->expressionLanguage->evaluate($attribute, $variables)) {
-                return VoterInterface::ACCESS_GRANTED;
-            }
-        }
-
-        return $result;
+        return $variables;
     }
 }
