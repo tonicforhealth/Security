@@ -950,4 +950,34 @@ QUERY;
         $this->connection->executeQuery($this->getUpdateAccessControlEntrySql($ace->getId(), $sets));
     }
 
+    public function deleteSecurityIdentity(SecurityIdentityInterface $sid){
+        $this->connection->executeQuery($this->getDeleteSecurityIdentityIdSql($sid));
+    }
+
+    /**
+     * Constructs the SQL for selecting the primary key of a security identity.
+     *
+     * @param SecurityIdentityInterface $sid
+     * @throws \InvalidArgumentException
+     * @return string
+     */
+    protected function getDeleteSecurityIdentityIdSql(SecurityIdentityInterface $sid)
+    {
+        if ($sid instanceof UserSecurityIdentity) {
+            $identifier = $sid->getClass().'-'.$sid->getUsername();
+            $username = true;
+        } elseif ($sid instanceof RoleSecurityIdentity) {
+            $identifier = $sid->getRole();
+            $username = false;
+        } else {
+            throw new \InvalidArgumentException('$sid must either be an instance of UserSecurityIdentity, or RoleSecurityIdentity.');
+        }
+
+        return sprintf(
+            'DELETE FROM %s WHERE identifier = %s AND username = %s',
+            $this->options['sid_table_name'],
+            $this->connection->quote($identifier),
+            $this->connection->getDatabasePlatform()->convertBooleans($username)
+        );
+    }
 }
